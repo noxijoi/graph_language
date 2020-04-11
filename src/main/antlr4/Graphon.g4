@@ -3,16 +3,49 @@ grammar Graphon;
 
 //parser rules
 
-compilationUnit: exp* EOF;
+compilationUnit: function*
+                exp* EOF;
 
-exp: (variableDeclaration |
-        preDefinedActions |
-        graphAssignation)
+exp: (variableDeclaration
+       | preDefinedActions
+       | graphAssignation
+       |)
     EXP_END;
-variableDeclaration: graphDeclaration | nodeDeclaration | arcDeclaration;
 
-graphDeclaration: GRAPH ID EQUALS EMPTY_BRACKETS;
-nodeDeclaration: NODE ID EQUALS ('(' STRING ')'| EMPTY_BRACKETS);
+graphOperation:
+    functionCall #FUNCALL
+    | '(' graphOperation '+' graphOperation ')' #UNION
+    | graphOperation '+' graphOperation #UNION
+
+    | '(' graphOperation '-' graphOperation ')' #INTERSECTION
+    |  graphOperation '-' graphOperation  #INTERSECTION
+
+    | '(' graphOperation '\\' graphOperation ')' #DIFFERENCE
+    |  graphOperation '\\' graphOperation  #DIFFERENCE
+
+    | '(' graphOperation '*' graphOperation ')' #MULTIPLICATION
+    |  graphOperation '*' graphOperation  #MULTIPLICATION;
+
+
+function : functionDeclaration '{' (blockStatement)* '}' ;
+functionDeclaration : (built_in_type)? functionName '('functionArgument*')' ;
+functionName : ID ;
+functionArgument : built_in_type ID;
+
+
+functionCall : functionName '('expressionList ')';
+expressionList : exp (',' exp)* ;
+
+blockStatement : variableDeclaration
+               | preDefinedActions
+               | functionCall ;
+variableDeclaration: graphDeclaration
+    | nodeDeclaration
+    | arcDeclaration
+    | ID EQUALS exp;
+
+graphDeclaration: GRAPH ID EQUALS '()';
+nodeDeclaration: NODE ID EQUALS ('(' STRING ')'| '()');
 arcDeclaration: ARC ID EQUALS ('('STRING ',' ID arrow ID ')' |'(' ID arrow ID ')');
 
 graphAssignation: ID ASSIGN ID (COMMA ID)*;
@@ -20,7 +53,6 @@ graphAssignation: ID ASSIGN ID (COMMA ID)*;
 preDefinedActions: print;
 
 print: PRINT ID;
-
 
 built_in_type: GRAPH | NODE | ARC;
 arrow: R_ARROW | L_ARROW | LR_ARROW;
