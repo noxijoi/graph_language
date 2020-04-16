@@ -53,12 +53,12 @@ assignment: ID EQUALS exp;
 printStatement: PRINT ID;
 returnStatement: RETURN exp #RETURN_VALUE
     | RETURN #RETURN_VOID;
-ifStatement :  'if'  ('(')? exp (')')? trueStatement=statement ('else' falseStatement=statement)?;
+ifStatement :  IF  ('(')? exp (')')? trueStatement=statement ('else' falseStatement=statement)?;
 
-forStatement : 'for' ('(')? forConditions (')')? statement ;
+forStatement : FOR ('(')? forConditions (')')? statement ;
 forConditions : iterator=ID  'from' startExpr=exp range='to' endExpr=exp ;
 
-whileStatement: WHILE  ('(')? exp (')')? statement;
+whileStatement: WHILE  ('(')? exp (')')? whileTrueStatement=statement;
 exp:
     ID #VarRef
     |functionName '(' #FunctionCall
@@ -94,6 +94,9 @@ BOOL: 'bool';
 INT: 'int';
 VOID: 'void';
 
+IF: 'if';
+FOR: 'for';
+WHILE: 'while';
 
 MAIN: 'main';
 RETURN: 'return';
