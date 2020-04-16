@@ -4,17 +4,13 @@ grammar Graphon;
 //parser rules
 
 compilationUnit: function*
-                exp* EOF;
+                mainBlock
+                EOF;
 
-exp: (variableDeclaration
-       | preDefinedActions
-       | graphAssignation
-       |)
-    EXP_END;
+mainBlock: MAIN block;
 
 graphOperation:
-    functionCall #FUNCALL
-    | '(' graphOperation '+' graphOperation ')' #UNION
+     '(' graphOperation '+' graphOperation ')' #UNION
     | graphOperation '+' graphOperation #UNION
 
     | '(' graphOperation '-' graphOperation ')' #INTERSECTION
@@ -27,41 +23,80 @@ graphOperation:
     |  graphOperation '*' graphOperation  #MULTIPLICATION;
 
 
-function : functionDeclaration '{' (blockStatement)* '}' ;
-functionDeclaration : (built_in_type)? functionName '('functionArgument*')' ;
+function : functionSignature block;
+functionSignature : (builtInType)? functionName '(' parameterList')' ;
+parameterList: parameter (COMMA parameter)*;
 functionName : ID ;
-functionArgument : built_in_type ID;
+parameter : builtInType ID;
 
 
-functionCall : functionName '('expressionList ')';
-expressionList : exp (',' exp)* ;
+block: BLOCK_START statement* BLOCK_END;
+statement :
+    block
+    | variableDeclaration
+    | assignment
+    | graphAssignation
+    | printStatement
+    | forStatement
+    | returnStatement
+    | ifStatement
+    | whileStatement
+    | exp;
 
-blockStatement : variableDeclaration
-               | preDefinedActions
-               | functionCall ;
-variableDeclaration: graphDeclaration
-    | nodeDeclaration
-    | arcDeclaration
-    | ID EQUALS exp;
+
+variableDeclaration:
+    graphDeclaration #GRAPH_DECLARATION
+    | nodeDeclaration #NODE_DECLARATION
+    | arcDeclaration #ARC_DECLARATION;
+
+assignment: ID EQUALS exp;
+printStatement: PRINT ID;
+returnStatement: RETURN exp #RETURN_VALUE
+    | RETURN #RETURN_VOID;
+ifStatement :  'if'  ('(')? exp (')')? trueStatement=statement ('else' falseStatement=statement)?;
+
+forStatement : 'for' ('(')? forConditions (')')? statement ;
+forConditions : iterator=ID  'from' startExpr=exp range='to' endExpr=exp ;
+
+whileStatement: WHILE  ('(')? exp (')')? statement;
+exp:
+    ID #VarRef
+    |functionName '(' #FunctionCall
+    | graphOperation #Operation
+    | value  #ValueExpr
+    | exp cmp='>' exp #ConditionalExpr
+    | exp cmp='<' exp #ConditionalExpr
+    | exp cmp='==' exp #ConditionalExpr
+    | exp cmp='!=' exp #ConditionalExpr
+    | exp cmp='>=' exp #ConditionalExpr
+    | exp cmp='<=' exp #ConditionalExpr
+    ;
 
 graphDeclaration: GRAPH ID EQUALS '()';
 nodeDeclaration: NODE ID EQUALS ('(' STRING ')'| '()');
-arcDeclaration: ARC ID EQUALS ('('STRING ',' ID arrow ID ')' |'(' ID arrow ID ')');
+arcDeclaration: ARC ID EQUALS ('('STRING ',' ID arrow ID ')' | '(' ID arrow ID ')');
 
 graphAssignation: ID ASSIGN ID (COMMA ID)*;
 
-preDefinedActions: print;
+builtInType: graphType| primitiveType;
+graphType: GRAPH | NODE | ARC;
+primitiveType: BOOL | INT | VOID;
 
-print: PRINT ID;
-
-built_in_type: GRAPH | NODE | ARC;
 arrow: R_ARROW | L_ARROW | LR_ARROW;
-
+value: BOOL_VALUES | NUMBER | STRING;
 //lexer rules
+//graph types
 GRAPH: 'graph';
 NODE: 'node';
 ARC: 'arc';
+//oter primitive types
+BOOL: 'bool';
+INT: 'int';
+VOID: 'void';
 
+
+MAIN: 'main';
+RETURN: 'return';
 PRINT: 'print';
 
 EQUALS: '=';
@@ -71,9 +106,12 @@ L_ARROW: '<-';
 LR_ARROW: '--';
 COMMA: ',';
 
+BLOCK_START: '{';
+BLOCK_END: '}';
+
 EMPTY_BRACKETS: '()';
-EXP_END: '\n';
 ID : [a-zA-Z0-9]+ ;
 NUMBER: [0-9]+;
-STRING : '"'.*'"' ;
-WS: [\t\r' ']+ -> skip;
+STRING : '"'~('\r' | '\n' | '"')*'"' ;
+BOOL_VALUES: 'true' | 'false';
+WS: [\t\r\n' ']+ -> skip;
